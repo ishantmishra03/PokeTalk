@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Auth | Poketalk",
-  description: "",
+  description: "Real Time ChatApplication made in Next.JS + Typescript",
 };
 
 export default function AuthLayout({
@@ -10,11 +10,5 @@ export default function AuthLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <html lang="en">
-      <body>
-        {children}
-      </body>
-    </html>
-  );
+  return <>{children}</>;
 }
