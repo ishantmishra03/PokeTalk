@@ -1,24 +1,103 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react"; 
+import { useEffect, useState } from "react";
+import axios from "@/config/axios";
+import toast from "react-hot-toast";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks/index";
+import { login, setLoading } from "@/redux/features/authSlice";
+import { Input, PasswordInput } from "@/ui/Input";
 
 export default function Auth() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const {loading, isAuthenticated} = useAppSelector((state) => state.auth);
+
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleClick = () => {
-    router.push("/");
+  const [formData, setFormData] = useState({
+    name: "",
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    dispatch(setLoading(true));
+
+    try {
+      if (!formData.email || !formData.password) {
+        toast.error("Email and password are required");
+        return;
+      }
+
+      if (!isLogin) {
+        if (!formData.name || !formData.username || !formData.confirmPassword) {
+          toast.error("All fields are required for sign up");
+          return;
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+          toast.error("Passwords do not match");
+          return;
+        }
+
+        const res = await axios.post("/api/auth/register", {
+          name: formData.name,
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (res.data.success) {
+          dispatch(login({ user: res.data.user }));
+          toast.success("Account created!");
+          router.push("/profile");
+        } else {
+          toast.error(res.data.message || "Sign up failed");
+        }
+      } else {
+        const res = await axios.post("/api/auth/login", {
+          email: formData.email,
+          username: formData.username,
+          password: formData.password,
+        });
+
+        if (res.data.success) {
+          dispatch(login({ user: res.data.user }));
+          toast.success("Welcome back!");
+          router.push("/profile");
+        } else {
+          toast.error(res.data.message || "Login failed");
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Something went wrong");
+    } finally {
+      dispatch(setLoading(false));
+    }
+  };
+
+  useEffect(() => {
+    if(isAuthenticated){
+      router.push('/profile');
+    }
+  }, [isAuthenticated, router])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-gray-900 bg-opacity-90 rounded-3xl shadow-2xl p-10 border border-yellow-400">
         <h1
-          onClick={handleClick}
+          onClick={() => router.push("/")}
           className="text-4xl font-extrabold text-yellow-400 text-center mb-6 select-none tracking-widest drop-shadow-[0_0_10px_rgba(255,223,0,0.7)] cursor-pointer"
         >
           POKÉTALK
@@ -33,7 +112,6 @@ export default function Auth() {
                 ? "bg-yellow-400 text-gray-900 shadow-lg scale-105"
                 : "text-yellow-300 hover:text-yellow-400"
             }`}
-            aria-label="Switch to Login"
           >
             Login
           </button>
@@ -44,87 +122,75 @@ export default function Auth() {
                 ? "bg-yellow-400 text-gray-900 shadow-lg scale-105"
                 : "text-yellow-300 hover:text-yellow-400"
             }`}
-            aria-label="Switch to Sign Up"
           >
             Sign Up
           </button>
         </div>
 
         {/* Form */}
-        <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-yellow-300 font-medium mb-1 select-none"
-            >
-              Email Address
-            </label>
-            <input
-              id="email"
-              type="email"
-              placeholder="ash.ketchum@palletmail.com"
-              className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-yellow-500 text-yellow-300 placeholder-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition"
-              required
-            />
-          </div>
-
-          <div className="relative">
-            <label
-              htmlFor="password"
-              className="block text-yellow-300 font-medium mb-1 select-none"
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="********"
-              className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-yellow-500 text-yellow-300 placeholder-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-10 text-yellow-400 hover:text-yellow-300 focus:outline-none select-none"
-              aria-label={showPassword ? "Hide password" : "Show password"}
-            >
-              {showPassword ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
-            </button>
-          </div>
-
-          {/* Confirm Password (only for Sign Up) */}
+        <form className="space-y-6" onSubmit={handleSubmit}>
           {!isLogin && (
-            <div className="relative">
-              <label
-                htmlFor="confirmPassword"
-                className="block text-yellow-300 font-medium mb-1 select-none"
-              >
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder="********"
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-yellow-500 text-yellow-300 placeholder-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition"
-                required
+            <>
+              <Input
+                label="Name"
+                id="name"
+                value={formData.name}
+                onChange={handleChange}
               />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-10 text-yellow-400 hover:text-yellow-300 focus:outline-none select-none"
-                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-              >
-                {showConfirmPassword ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
-              </button>
-            </div>
+              <Input
+                label="Username"
+                id="username"
+                value={formData.username}
+                onChange={handleChange}
+              />
+            </>
           )}
 
-          {/* Submit */}
+          <Input
+            label="Email Address"
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+          />
+
+          <PasswordInput
+            label="Password"
+            id="password"
+            show={showPassword}
+            toggle={() => setShowPassword(!showPassword)}
+            value={formData.password}
+            onChange={handleChange}
+          />
+
+          {!isLogin && (
+            <PasswordInput
+              label="Confirm Password"
+              id="confirmPassword"
+              show={showConfirmPassword}
+              toggle={() => setShowConfirmPassword(!showConfirmPassword)}
+              value={formData.confirmPassword}
+              onChange={handleChange}
+            />
+          )}
+
           <button
             type="submit"
-            className="w-full py-3 bg-yellow-400 rounded-lg font-bold text-gray-900 hover:bg-yellow-500 transition-colors shadow-lg"
+            disabled={loading}
+            className={`w-full py-3 rounded-lg font-bold text-gray-900 transition-colors shadow-lg
+      ${
+        loading
+          ? "bg-yellow-300 cursor-not-allowed"
+          : "bg-yellow-400 hover:bg-yellow-500"
+      }`}
           >
-            {isLogin ? "Sign In" : "Create Account"}
+            {loading
+              ? isLogin
+                ? "Signing In..."
+                : "Creating Account..."
+              : isLogin
+              ? "Sign In"
+              : "Create Account"}
           </button>
         </form>
 
