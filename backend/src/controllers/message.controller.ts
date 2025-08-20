@@ -3,6 +3,7 @@ import { AuthRequest } from "../middlewares/authVerify";
 import User from "../models/User";
 import Message from "../models/Message";
 import cloudinary from "../config/cloudinary";
+import { io, userSocketMap } from "..";
 
 //Get users for sidebar
 export const getUsersForSidebar = async (req: AuthRequest, res: Response) => {
@@ -50,7 +51,7 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
 export const markMessageAsSeen = async (req: AuthRequest, res: Response) => {
     try {
         const { id } = req.params;
-        await Message.findByIdAndUpdate(id, { seen: true });
+        await Message.findByIdAndUpdate(id, { isSeen: true });
         res.status(200).json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Internal server error' });
@@ -73,6 +74,12 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
         const newMessage = await Message.create({
             receiverId, senderId, text, image : imageUrl,
         });
+
+        // Emit new message to receiver socket
+        const receiverSocketId = userSocketMap[receiverId];
+        if(receiverSocketId){
+            io.to(receiverSocketId).emit("newMessage", newMessage);
+        }
 
         res.json({success: true, newMessage});
     } catch (error) {
