@@ -61,7 +61,7 @@ export default function Auth() {
         if (res.data.success) {
           dispatch(login({ user: res.data.user }));
           toast.success("Account created!");
-          router.push("/profile");
+          router.push("/chat");
         } else {
           toast.error(res.data.message || "Sign up failed");
         }
@@ -75,7 +75,7 @@ export default function Auth() {
         if (res.data.success) {
           dispatch(login({ user: res.data.user }));
           toast.success("Welcome back!");
-          router.push("/profile");
+          router.push("/chat");
         } else {
           toast.error(res.data.message || "Login failed");
         }
@@ -89,7 +89,7 @@ export default function Auth() {
 
   useEffect(() => {
     if(isAuthenticated){
-      router.push('/profile');
+      router.push('/chat');
     }
   }, [isAuthenticated, router])
 
@@ -149,7 +149,7 @@ export default function Auth() {
           <Input
             label="Email Address"
             id="email"
-            type="email"
+            type="text"
             value={formData.email}
             onChange={handleChange}
           />

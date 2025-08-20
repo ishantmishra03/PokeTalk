@@ -21,7 +21,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         }
       } catch (error) {
         dispatch(logout());
-        toast.error("Session expired, please log in again.");
       } finally {
         dispatch(setLoading(false));
       }

@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 
 import connectDB from './config/db';
 import authRouter from './routes/auth.routes';
+import messageRouter from './routes/message.routes';
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use(express.json());
 
 
 app.use('/api/auth', authRouter);
+app.use('/api/message', messageRouter);
 
 
 app.get('/', (_req: Request, res: Response) => {
