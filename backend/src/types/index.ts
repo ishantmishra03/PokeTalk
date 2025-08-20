@@ -1,7 +1,7 @@
-import { ObjectId } from "mongoose";
+import { Types } from "mongoose";
 
 export interface IUser{
-    _id: string;
+     _id: Types.ObjectId;
     name: string;
     username: string;
     email: string;
@@ -11,8 +11,8 @@ export interface IUser{
 }
 
 export interface IMessage{
-    senderId: string;
-    receiverId: string;
+    senderId: Types.ObjectId;
+    receiverId: Types.ObjectId;
     text: string;
     image: string;
     isSeen : boolean;

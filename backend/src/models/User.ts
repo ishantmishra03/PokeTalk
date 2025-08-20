@@ -1,7 +1,9 @@
-import mongoose, { Document, Schema, Model } from 'mongoose';
+import mongoose, { Document, Schema, Model, Types } from 'mongoose';
 import { IUser } from '../types';
 
-export interface IUserDocument extends IUser , Document {}
+export interface IUserDocument extends Omit<IUser, '_id'>, Document {
+  _id: Types.ObjectId;
+}
 
 const UserSchema: Schema<IUserDocument> = new mongoose.Schema(
   {

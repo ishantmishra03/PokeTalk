@@ -1,5 +1,8 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { ConfigOptions } from 'cloudinary';
+import dotnev from 'dotenv';
+
+dotnev.config();
 
 if (
   !process.env.CLOUDINARY_CLOUD_NAME ||
