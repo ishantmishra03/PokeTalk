@@ -8,6 +8,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/db';
 import authRouter from './routes/auth.routes';
 import messageRouter from './routes/message.routes';
+import { initializeSocket } from './sockets';
 
 dotenv.config();
 
@@ -15,11 +16,9 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
-
 const whitelist: string[] = process.env.CORS_WHITELIST
-  ? process.env.CORS_WHITELIST.split(',').map((origin) => origin.trim())
+  ? process.env.CORS_WHITELIST.split(',').map(origin => origin.trim())
   : [];
-
 
 const corsOptions: CorsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -36,17 +35,12 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
 
-
 app.use('/api/auth', authRouter);
 app.use('/api/message', messageRouter);
-
 
 app.get('/', (_req: Request, res: Response) => {
   res.send('TypeScript Backend');
 });
-
-// Online Users
-export const userSocketMap: {[key: string] : string} = {};
 
 // Initialize socket.io server
 export const io = new SocketIOServer(server, {
@@ -56,29 +50,14 @@ export const io = new SocketIOServer(server, {
   },
 });
 
-io.on("connection", (socket) => {
-  const rawUserId = socket.handshake.query.userId;
-  const userId = Array.isArray(rawUserId) ? rawUserId[0] : rawUserId;
+initializeSocket(io);
 
-  console.log("User Connected", userId);
-
-  if (userId) userSocketMap[userId] = socket.id;
-
-  io.emit("getOnlineUsers", Object.keys(userSocketMap));
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected", userId);
-    if (userId) delete userSocketMap[userId];
-    io.emit("getOnlineUsers", Object.keys(userSocketMap));
+connectDB()
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('❌ Failed to connect to DB:', err);
   });
-});
-
-
-
-connectDB().then(() => {
-  server.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-  });
-}).catch((err) => {
-  console.error('❌ Failed to connect to DB:', err);
-});

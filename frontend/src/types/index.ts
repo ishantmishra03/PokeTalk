@@ -8,3 +8,13 @@ export interface AuthState {
   isAuthenticated: boolean;
   loading: boolean;
 };
+
+export interface IMessage{
+  _id: string;
+    senderId: string;
+    receiverId: string;
+    text: string;
+    image: string;
+    isSeen : boolean;
+    createdAt: Date;
+}
