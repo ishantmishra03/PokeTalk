@@ -33,7 +33,7 @@ const corsOptions: CorsOptions = {
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({limit: "10mb"}));
 
 app.use('/api/auth', authRouter);
 app.use('/api/message', messageRouter);

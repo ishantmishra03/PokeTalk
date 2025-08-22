@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, ChangeEvent } from "react";
 import { useAppSelector } from "@/redux/hooks";
 import axios from "@/config/axios";
 import io, { Socket } from "socket.io-client";
 import Image from "next/image";
+import { Image as ImageIcon } from "lucide-react";
 
 interface User {
   id: string;
@@ -17,7 +18,6 @@ interface Message {
   receiverId: string;
   text?: string;
   image?: string;
-  isSeen?: boolean;
   createdAt?: string;
 }
 
@@ -27,9 +27,9 @@ export default function ChatMain({ selectedUser }: { selectedUser: User | null }
   const { user } = useAppSelector((state) => state.auth);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -37,27 +37,23 @@ export default function ChatMain({ selectedUser }: { selectedUser: User | null }
   useEffect(() => {
     if (!user || !selectedUser) return;
 
-    // Initialize socket
     if (!socket) {
       socket = io(process.env.NEXT_PUBLIC_BACKEND_URL as string, {
         auth: { userId: user.id, userName: user.name },
       });
     }
 
-    // Fetch old messages
     const fetchMessages = async () => {
       try {
         const res = await axios.get(`/api/message/${selectedUser.id}`);
         if (res.data.success) setMessages(res.data.messages);
       } catch (err) {
-        console.error("Error fetching messages:", err);
+        console.error(err);
       }
     };
     fetchMessages();
 
-    // Listen for real-time messages
     socket.on("newMessage", (msg: Message) => {
-      // Only add if message belongs to this chat
       if (
         (msg.senderId === selectedUser.id && msg.receiverId === user.id) ||
         (msg.senderId === user.id && msg.receiverId === selectedUser.id)
@@ -72,40 +68,54 @@ export default function ChatMain({ selectedUser }: { selectedUser: User | null }
     };
   }, [selectedUser, user]);
 
-  // Send message
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) setSelectedFile(e.target.files[0]);
+  };
+
+  const fileToBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (err) => reject(err);
+    });
+
   const handleSend = async () => {
-    if (!newMessage.trim() || !selectedUser) return;
+    if (!selectedUser) return;
 
-    const messageData = { text: newMessage };
+    let imageBase64: string | undefined;
+    if (selectedFile) imageBase64 = await fileToBase64(selectedFile);
 
+    const payload = { text: newMessage.trim() || undefined, image: imageBase64 };
     try {
-      const res = await axios.post(`/api/message/send/${selectedUser.id}`, messageData);
+      const res = await axios.post(`/api/message/send/${selectedUser.id}`, payload);
       if (res.data.success) {
         setMessages((prev) => [...prev, res.data.newMessage]);
         scrollToBottom();
         setNewMessage("");
+        setSelectedFile(null);
       }
     } catch (err) {
       console.error("Error sending message:", err);
     }
   };
 
-  if (!selectedUser) {
+  if (!selectedUser)
     return (
       <div className="flex-1 flex items-center justify-center text-gray-500">
         Select a user to start chatting ⚡
       </div>
     );
-  }
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-900">
+    <div className="flex-1 flex flex-col bg-gray-900 min-h-0">
+      {/* Header */}
       <div className="border-b border-yellow-500/30 p-4 text-yellow-400 font-bold text-lg">
         {selectedUser.name}
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2 flex flex-col">
         {messages.map((msg) => {
           const isSender = msg.senderId === user?.id;
           return (
@@ -124,10 +134,18 @@ export default function ChatMain({ selectedUser }: { selectedUser: User | null }
                     src={msg.image}
                     alt="sent media"
                     className="mt-1 rounded-md max-h-60 w-auto"
+                    width={240}
+                    height={240}
                   />
                 )}
-                <span className={`text-xs ${isSender ? "text-gray-950" : "text-gray-400"} float-right`}>
-                  {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString() : ""}
+                <span
+                  className={`text-xs ${
+                    isSender ? "text-gray-950" : "text-gray-400"
+                  } float-right`}
+                >
+                  {msg.createdAt
+                    ? new Date(msg.createdAt).toLocaleTimeString()
+                    : ""}
                 </span>
               </div>
             </div>
@@ -137,7 +155,20 @@ export default function ChatMain({ selectedUser }: { selectedUser: User | null }
       </div>
 
       {/* Input */}
-      <div className="border-t border-yellow-500/30 p-4 flex gap-2">
+      <div className="border-t border-yellow-500/30 p-2 flex gap-2 items-center">
+        <button
+          onClick={() => document.getElementById("fileInput")?.click()}
+          className="p-2 text-yellow-300 hover:text-yellow-400"
+        >
+          <ImageIcon size={24} />
+        </button>
+        <input
+          id="fileInput"
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+        />
         <input
           type="text"
           placeholder="Type a message..."

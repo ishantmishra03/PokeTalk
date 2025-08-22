@@ -3,12 +3,9 @@
 import { useEffect, useState } from "react";
 import { useAppSelector } from "@/redux/hooks";
 import axios from "@/config/axios";
+import { UserCheck, UserX } from "lucide-react";
 
-interface User {
-  id: string;
-  name: string;
-}
-
+interface User { id: string; name: string; }
 interface Props {
   onlineUsers: User[];
   selectedUser: User | null;
@@ -31,39 +28,30 @@ export default function ChatSidebar({ onlineUsers, selectedUser, setSelectedUser
           setAllUsers(normalized);
         }
       } catch (err) {
-        console.error("Failed to fetch users", err);
+        console.error(err);
       }
     };
     fetchUsers();
   }, []);
 
-  // Exclude self
   const usersExceptSelf = allUsers.filter((u) => u.id !== user?.id);
 
   return (
-    <div className="w-72 bg-gray-900 border-r border-yellow-500/30 flex flex-col">
-      <h2 className="text-2xl font-bold text-yellow-400 p-4 border-b border-yellow-500/30">
-        Trainers
-      </h2>
-
+    <div className="flex flex-col h-full">
+      <h2 className="text-2xl font-bold text-yellow-400 p-4 border-b border-yellow-500/30">Trainers</h2>
       <div className="flex-1 overflow-y-auto">
         {usersExceptSelf.map((u) => {
           const isOnline = onlineUsers.some((o) => o.id === u.id);
           const isSelected = selectedUser?.id === u.id;
-
           return (
             <div
               key={u.id}
               onClick={() => setSelectedUser(u)}
-              className={`px-4 py-3 cursor-pointer flex items-center gap-2 transition-colors ${
-                isSelected ? "bg-yellow-500/20" : "hover:bg-gray-800"
-              }`}
+              className={`px-4 py-3 cursor-pointer flex items-center gap-2 transition-colors ${isSelected ? "bg-yellow-500/20" : "hover:bg-gray-800"}`}
             >
-              <span
-                className={`w-3 h-3 rounded-full ${
-                  isOnline ? "bg-green-400" : "bg-gray-500"
-                }`}
-              ></span>
+              <span className={`w-4 h-4 rounded-full flex items-center justify-center`}>
+                {isOnline ? <UserCheck size={12} className="text-green-400" /> : <UserX size={12} className="text-gray-500" />}
+              </span>
               <p className="font-medium">{u.name}</p>
             </div>
           );
